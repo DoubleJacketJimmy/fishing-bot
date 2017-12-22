@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "mongoose": "^4.13.7",
     "telegraf": "^3.17.2"
   }
 }
