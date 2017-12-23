@@ -15,14 +15,14 @@ class Router {
         this._notFoundMessage = message;
     }
 
-    text(route, callback) {
-        this._routes[route] = callback;
+    text(route, ...callbackArray) {
+        this._routes[route] = callbackArray;
 
         return this;
     }
 
-    command(route, callback) {
-        return this.text('/' + route, callback);
+    command(route, ...callbackArray) {
+        return this.text('/' + route, ...callbackArray);
     }
 
     routes() {
@@ -34,23 +34,36 @@ class Router {
                 .trim()
                 .toLowerCase();
 
-            if (!this._routes[command]) {
-                if (command[0] === '/') 
-                    ctx.reply(this._notFoundMessage);
+            let userID = ctx.from.id;
 
-                return;
+            if (this._routes[command]) {
+                this._saveState(userID, command);
+                this._routes[command][0](ctx);
+            } else {
+                let state = this._state[userID];
+
+                if (!state) return;
+
+                let lastCommand = state.lastCommand;
+                let iteration = state.iteration;
+
+                if (iteration < this._routes[lastCommand].length) {
+                    this._state[userID].iteration++;
+                    this._routes[lastCommand][iteration](ctx);
+                }
             }
-
-            this._saveState(ctx.from.id, command);
-            this._routes[command](ctx);        
         }
     }
 
     _saveState(userID, command) {
         if (!this._state[userID])
-            this._state[userID] = {lastCommand: null};
+            this._state[userID] = {
+                lastCommand: null,
+                iteration: 0
+            };
 
         this._state[userID].lastCommand = command;
+        this._state[userID].iteration = 1;
     }
 }
 
