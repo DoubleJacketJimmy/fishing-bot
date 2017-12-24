@@ -91,7 +91,7 @@ router
                     ctx.reply('Пользователь не найден. Повтори попытку или зарегистрируйся')
                 });
             
-            if (userCatch < 0 || userExist) return;
+            if (userCatch < 0 || !userExist) return;
 
             let tour = new Tour({
                 userID: userID,
@@ -126,6 +126,63 @@ router
 
                 ctx.reply('Не удалось загрузить данные');
             });
+    })
+
+    .command('recordpike', 
+        ctx => ctx.reply('Сколько весит твоя рекордная щука (в граммах)?'),
+        getRecordFishCallback('recordPike')
+    )
+    
+    .command('recordbass',
+        ctx => ctx.reply('Сколько весит твой рекордный окунь (в граммах)?'),
+        getRecordFishCallback('recordBass')
+    )
+    
+    .command('myrecords', ctx => {
+        let userID = ctx.from.id;
+
+        User.findById(userID)
+            .exec()
+            .then(user =>
+                ctx.replyWithMarkdown(`Твои рекорды:\n*Щука:* ${user.recordPike}\n*Окунь:* ${user.recordBass}`)
+            )
+            .catch(err => {
+                console.error(err);
+
+                ctx.reply('Пользователь не найден. Повтори попытку или зарегистрируйся');
+            });
     });
+
+function getRecordFishCallback(prop) {
+    return ctx => {
+        let userID = ctx.from.id;
+        let value = parseInt(ctx.message.text) || 0;
+
+        User.findById(userID)
+            .exec()
+            .then(user => {
+                if (user[prop] >= value) {
+                    ctx.reply('Ты вылавливал рыбу побольше');
+
+                    return;
+                }
+
+                user[prop] = value;
+
+                user.save()
+                    .then(() => ctx.reply('Твой личный рекорд обновлен'))
+                    .catch(err => {
+                        console.error(err);
+
+                        ctx.reply('Не удалось сохранить изменения');
+                    });
+            })
+            .catch(err => {
+                console.error(err);
+
+                ctx.reply('Пользователь не найден. Повтори попытку или зарегистрируйся');
+            });
+    }
+}
 
 module.exports = router
