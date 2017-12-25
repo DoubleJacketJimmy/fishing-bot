@@ -29,7 +29,7 @@ router
                 return;
             }
 
-            ctx.replyWithMarkdown(`Твои рекорды:\n*Щука:* ${user.recordPike}\n*Окунь:* ${user.recordBass}`);
+            ctx.replyWithMarkdown(`Твои рекорды:\n*Щука:* ${user.recordPike / 1000}кг\n*Окунь:* ${user.recordBass}г`);
         } catch (err) {
             console.error(err);
 

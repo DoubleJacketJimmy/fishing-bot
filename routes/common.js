@@ -34,10 +34,12 @@ router
         try {
             let users = await User.find({});
 
+            users.sort((userA, userB) => userB.score - userA.score);
+
             let result = '';
 
             users.forEach(user => {
-                result += `*${user.name}:* ${user.score}г\n`
+                result += `*${user.name}:* ${user.score / 1000}кг\n`
             });
 
             ctx.replyWithMarkdown(result || 'Не удалось сформировать список (нет зарегистрированных пользователей)');
@@ -59,7 +61,7 @@ router
                 return;
             }
 
-            ctx.replyWithMarkdown(`*Твой улов (${user.name}):* ${user.score}г`);
+            ctx.replyWithMarkdown(`*Твой улов (${user.name}):* ${user.score / 1000}кг`);
         } catch(err) {
             console.error(err);  
 
