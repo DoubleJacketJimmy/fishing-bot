@@ -15,6 +15,27 @@ class Router {
         this._notFoundMessage = message;
     }
 
+    get routes() {
+        return this._routes;
+    }
+
+    set routes(value) {
+        this._routes = value;
+    }
+
+    static combineRouters(...routers) {
+        let routes = {};
+
+        routers.forEach(router => 
+            routes = Object.assign(routes, router.routes)
+        );
+
+        let combinedRouter = new Router();
+        combinedRouter.routes = routes;
+
+        return combinedRouter;
+    }
+
     text(route, ...callbackArray) {
         this._routes[route] = callbackArray;
 
@@ -25,7 +46,7 @@ class Router {
         return this.text('/' + route, ...callbackArray);
     }
 
-    routes() {
+    getRoutes() {
         return ctx => {
             if (!ctx.message.text) return;
 
