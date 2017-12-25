@@ -18,114 +18,100 @@ const router = new Router();
 router
     .command('start', ctx => ctx.reply('Дороу!'))
 
-    .command('reg', ctx => {
+    .command('reg', async ctx => {
         let user = new User({
             _id: ctx.from.id,
-            name: ctx.from.first_name,
-            score: 0
+            name: ctx.from.first_name
         });
 
-        user.save()
-            .then(() => {
-                console.log(`New user: ${ctx.from.first_name}`);
+        try {
+            await user.save();
 
-                ctx.reply('Регистрация успешно завершена');
-            })
-            .catch(err => {
-                console.error(err);
+            ctx.reply('Регистрация успешно завершена');
+        } catch(err) {
+            console.error(err);
                 
-                // Duplicate key error:
-                if (err.code === 11000)
-                    ctx.reply('Пользователь с таким telegram ID уже зарегестрирован');
-                else
-                    ctx.reply('Не удалось сохранить данные');
-            });
+            // Duplicate key error:
+            if (err.name === 'MongoError' && err.code === 11000)
+                ctx.reply('Пользователь с таким telegram ID уже зарегестрирован');
+            else
+                ctx.reply('Не удалось сохранить данные');
+        }
     })
 
-    .command('myscore', ctx => {
+    .command('myscore', async ctx => {
         let userID = ctx.from.id;
 
-        User.findById(userID)
-            .exec()
-            .then(user => {
-                if (!user) {
-                    ctx.reply('Пользователя с таким telegram ID не существует');
-                    return;
-                }
+        try {
+            let user = await User.findById(userID);
 
-                ctx.replyWithMarkdown(`*Твой улов (${user.name}):* ${user.score}г`);
-            })
-            .catch(err => {
-                console.error(err);  
+            if (!user) {
+                ctx.reply('Пользователя с таким telegram ID не существует');
+                return;
+            }
 
-                ctx.reply('Не удалось загрузить данные');
-            });
+            ctx.replyWithMarkdown(`*Твой улов (${user.name}):* ${user.score}г`);
+        } catch(err) {
+            console.error(err);  
+
+            ctx.reply('Не удалось загрузить данные');
+        }
     })
     
     .command('newtour', 
         ctx => ctx.reply('Сколько рыбы ты поймал (в граммах)?'),
-        ctx => {
+        async ctx => {
             let userID = ctx.from.id;
             let userCatch = parseInt(ctx.message.text) || 0;
-
-            let userExist = true;
-
-            User.findById(userID)
-                .exec()
-                .then(user => {
-                    user.score += userCatch;
-
-                    user.save()
-                        .then(() => ctx.reply('Твой улов обновлен'))
-                        .catch(err => {
-                            console.error(err);
-
-                            ctx.reply('Не удалось обновить улов');
-                        });
-                })
-                .catch(err => {
-                    console.error(err);
-
-                    userExist = false;
-
-                    ctx.reply('Пользователь не найден. Повтори попытку или зарегистрируйся')
-                });
             
-            if (userCatch < 0 || !userExist) return;
+            try {
+                let user = await User.findById(userID);
 
-            let tour = new Tour({
-                userID: userID,
-                catch: userCatch,
-                date: new Date()
-            });
+                if (!user) {
+                    ctx.reply('Пользователь с таким telegram ID не найден. Повтори попытку или зарегистрируйся');
 
-            tour.save()
-                .then(() => ctx.reply('Данные успешно сохранены'))
-                .catch(err => {
-                    console.error(err);
+                    return;
+                }
 
-                    ctx.reply('Не удалось сохранить данные');
+                user.score += userCatch;
+
+                await user.save();
+
+                ctx.reply('Твой общий улов обновлен');
+
+                let tour = new Tour({
+                    userID: userID,
+                    catch: userCatch,
+                    date: new Date()
                 });
+    
+                await tour.save();
+
+                ctx.reply('Данные о рыбалке успешно сохранены');
+            } catch(err) {
+                console.error(err);
+
+                ctx.reply('Не удалось сохранить данные');
+            }
         }
     )
     
-    .command('showlist', ctx => {
-        User.find({})
-            .exec()
-            .then(users => {
-                let result = '';
+    .command('showlist', async ctx => {
+        try {
+            let users = await User.find({});
 
-                users.forEach(user => {
-                    result += `*${user.name}:* ${user.score}г\n`
-                });
+            let result = '';
 
-                ctx.replyWithMarkdown(result || 'Не удалось сформировать список (нет зарегистрированных пользователей)');
-            })
-            .catch(err => {
-                console.error(err);
-
-                ctx.reply('Не удалось загрузить данные');
+            users.forEach(user => {
+                result += `*${user.name}:* ${user.score}г\n`
             });
+
+            ctx.replyWithMarkdown(result || 'Не удалось сформировать список (нет зарегистрированных пользователей)');
+        } catch (err) {
+            console.error(err);
+
+            ctx.reply('Не удалось загрузить данные');
+        }
     })
 
     .command('recordpike', 
@@ -138,50 +124,57 @@ router
         getRecordFishCallback('recordBass')
     )
     
-    .command('myrecords', ctx => {
+    .command('myrecords', async ctx => {
         let userID = ctx.from.id;
 
-        User.findById(userID)
-            .exec()
-            .then(user =>
-                ctx.replyWithMarkdown(`Твои рекорды:\n*Щука:* ${user.recordPike}\n*Окунь:* ${user.recordBass}`)
-            )
-            .catch(err => {
-                console.error(err);
+        try {
+            let user = await User.findById(userID);
 
-                ctx.reply('Пользователь не найден. Повтори попытку или зарегистрируйся');
-            });
+            if (!user) {
+                ctx.reply('Пользователь с таким telegram ID не найден. Повтори попытку или зарегистрируйся');
+
+                return;
+            }
+
+            ctx.replyWithMarkdown(`Твои рекорды:\n*Щука:* ${user.recordPike}\n*Окунь:* ${user.recordBass}`);
+        } catch (err) {
+            console.error(err);
+
+            ctx.reply('Не удалось загрузить данные');
+        }
     });
 
 function getRecordFishCallback(prop) {
-    return ctx => {
+    return async ctx => {
         let userID = ctx.from.id;
         let value = parseInt(ctx.message.text) || 0;
 
-        User.findById(userID)
-            .exec()
-            .then(user => {
-                if (user[prop] >= value) {
-                    ctx.reply('Ты вылавливал рыбу побольше');
+        try {
+            let user = await User.findById(userID);
 
-                    return;
-                }
+            if (!user) {
+                ctx.reply('Пользователь с таким telegram ID не найден. Повтори попытку или зарегистрируйся');
 
-                user[prop] = value;
+                return;
+            }
 
-                user.save()
-                    .then(() => ctx.reply('Твой личный рекорд обновлен'))
-                    .catch(err => {
-                        console.error(err);
+            if (user[prop] >= value) {
+                ctx.reply('Ты вылавливал рыбу побольше');
 
-                        ctx.reply('Не удалось сохранить изменения');
-                    });
-            })
-            .catch(err => {
-                console.error(err);
+                return;
+            }
 
-                ctx.reply('Пользователь не найден. Повтори попытку или зарегистрируйся');
-            });
+            user[prop] = value;
+
+            await user.save();
+
+            ctx.reply('Твой личный рекорд обновлен');
+
+        } catch (err) {
+            console.error(err);
+
+            ctx.reply('Не удалось сохранить изменения');
+        }
     }
 }
 
