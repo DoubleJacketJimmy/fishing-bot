@@ -1,6 +1,6 @@
 const Telegraf = require('telegraf');
 const mongoose = require('mongoose');
-const config = require('./config.js');
+const config = require('./config');
 
 const bot = new Telegraf(config.token);
 

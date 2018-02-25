@@ -1,4 +1,4 @@
-const config = require('./config.js');
+const config = require('../config');
 
 class Router {
     constructor() {
@@ -48,7 +48,7 @@ class Router {
 
     getRoutes() {
         return ctx => {
-            if (!ctx.message.text) return;
+            if (!ctx.message || !ctx.message.text) return;
 
             let command = ctx.message.text
                 .replace(config.botUsername, '')
