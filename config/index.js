@@ -5,7 +5,7 @@ if (process.env.NODE_ENV === 'development')
 else
     config = {
         token: process.env.TOKEN,
-        botUsername: "@fishing_catch_bot",
+        botUsername: process.env.BOT_USERNAME,
         connectionString: process.env.CONNECTION_STRING
     }
 
